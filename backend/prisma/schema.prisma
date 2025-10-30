@@ -1,0 +1,119 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  profile Profile?
+
+  // Likes given by this user
+  likesGiven Like[] @relation("LikesGiven")
+  
+  // Likes received by this user
+  likesReceived Like[] @relation("LikesReceived")
+
+  // Matches where this user is user1
+  matchesAsUser1 Match[] @relation("MatchUser1")
+  
+  // Matches where this user is user2
+  matchesAsUser2 Match[] @relation("MatchUser2")
+
+  // Messages sent by this user
+  messagesSent Message[] @relation("MessageSender")
+
+  @@map("users")
+}
+
+model Profile {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  name      String
+  age       Int
+  gender    String   // "male", "female", "other", "non-binary", "transgender", etc.
+  bio       String?
+  location  String?
+  zodiac    String?  // Zodiac sign
+  education String?  // Education level
+  pets      String?  // Pets preference
+  drinkingHabits String?  // Drinking habits
+  smokingHabits  String?  // Smoking habits
+  photos    String[] // Array of photo URLs
+  interests String[] // Array of interests (favorite genres)
+  topFilms  String[] // Array of top 4 film poster URLs
+  relationshipGoals String[] // Array of relationship goals (Dating, Friendship, Casual, Serious)
+
+  // Preferences
+  preferredGender    String[] // ["male", "female", "everyone"]
+  preferredAgeMin    Int      @default(18)
+  preferredAgeMax    Int      @default(50)
+  preferredDistance  Int?     // in km, optional for MVP
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("profiles")
+}
+
+model Like {
+  id        String   @id @default(uuid())
+  
+  fromUserId String
+  fromUser   User   @relation("LikesGiven", fields: [fromUserId], references: [id], onDelete: Cascade)
+  
+  toUserId   String
+  toUser     User   @relation("LikesReceived", fields: [toUserId], references: [id], onDelete: Cascade)
+  
+  createdAt DateTime @default(now())
+
+  @@unique([fromUserId, toUserId])
+  @@map("likes")
+}
+
+model Match {
+  id        String   @id @default(uuid())
+  
+  user1Id   String
+  user1     User     @relation("MatchUser1", fields: [user1Id], references: [id], onDelete: Cascade)
+  
+  user2Id   String
+  user2     User     @relation("MatchUser2", fields: [user2Id], references: [id], onDelete: Cascade)
+  
+  messages  Message[]
+  
+  createdAt DateTime @default(now())
+
+  @@unique([user1Id, user2Id])
+  @@map("matches")
+}
+
+model Message {
+  id        String   @id @default(uuid())
+  
+  matchId   String
+  match     Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  
+  senderId  String
+  sender    User     @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
+  
+  content   String
+  read      Boolean  @default(false)
+  
+  createdAt DateTime @default(now())
+
+  @@map("messages")
+}
