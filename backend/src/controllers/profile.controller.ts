@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { AuthRequest } from '../middleware/auth.middleware';
+import cloudinary from '../config/cloudinary.config';
 
 const prisma = new PrismaClient();
 
@@ -29,6 +30,8 @@ export const updateProfile = async (req: AuthRequest, res: Response) => {
       gender,
       bio,
       location,
+      latitude,
+      longitude,
       zodiac,
       education,
       pets,
@@ -57,6 +60,8 @@ export const updateProfile = async (req: AuthRequest, res: Response) => {
     if (gender !== undefined) updateData.gender = gender;
     if (bio !== undefined) updateData.bio = bio;
     if (location !== undefined) updateData.location = location;
+    if (latitude !== undefined) updateData.latitude = parseFloat(latitude);
+    if (longitude !== undefined) updateData.longitude = parseFloat(longitude);
     if (zodiac !== undefined) updateData.zodiac = zodiac;
     if (education !== undefined) updateData.education = education;
     if (pets !== undefined) updateData.pets = pets;
@@ -93,7 +98,8 @@ export const uploadPhoto = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ error: 'No file uploaded' });
     }
 
-    const photoUrl = `/uploads/${req.file.filename}`;
+    // Cloudinary automatically uploads the file and provides the URL
+    const photoUrl = (req.file as any).path; // Cloudinary URL
 
     const profile = await prisma.profile.findUnique({
       where: { userId: req.userId },
@@ -101,6 +107,22 @@ export const uploadPhoto = async (req: AuthRequest, res: Response) => {
 
     if (!profile) {
       return res.status(404).json({ error: 'Profile not found' });
+    }
+
+    // Delete old profile picture from Cloudinary if it exists
+    if (profile.photos.length > 0 && profile.photos[0].includes('cloudinary.com')) {
+      try {
+        const oldPhotoUrl = profile.photos[0];
+        const urlParts = oldPhotoUrl.split('/');
+        const publicIdWithExtension = urlParts[urlParts.length - 1];
+        const publicId = `matchflix/profiles/${publicIdWithExtension.split('.')[0]}`;
+        
+        await cloudinary.uploader.destroy(publicId);
+        console.log(`Deleted old profile picture from Cloudinary: ${publicId}`);
+      } catch (cloudinaryError) {
+        console.error('Failed to delete old photo from Cloudinary:', cloudinaryError);
+        // Continue even if deletion fails
+      }
     }
 
     // Replace the first photo (profile picture) or add if no photos exist
@@ -134,6 +156,23 @@ export const deletePhoto = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ error: 'Profile not found' });
     }
 
+    // Extract public_id from Cloudinary URL
+    // URL format: https://res.cloudinary.com/{cloud_name}/image/upload/{version}/{public_id}.{format}
+    if (photoUrl.includes('cloudinary.com')) {
+      try {
+        const urlParts = photoUrl.split('/');
+        const publicIdWithExtension = urlParts[urlParts.length - 1];
+        const publicId = `matchflix/profiles/${publicIdWithExtension.split('.')[0]}`;
+        
+        // Delete from Cloudinary
+        await cloudinary.uploader.destroy(publicId);
+      } catch (cloudinaryError) {
+        console.error('Cloudinary deletion error:', cloudinaryError);
+        // Continue even if Cloudinary deletion fails
+      }
+    }
+
+    // Remove from database
     const updatedPhotos = profile.photos.filter((photo) => photo !== photoUrl);
 
     const updatedProfile = await prisma.profile.update({

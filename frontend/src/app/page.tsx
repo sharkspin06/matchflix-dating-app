@@ -133,7 +133,7 @@ export default function Home() {
         <div className="p-8 lg:p-12 mx-auto">
           <div className="flex flex-col items-center mb-10">
             <div className="flex items-center gap-4 mb-3">
-              <img src="/images/mflogo.png" alt="Frame Logo" className="w-24 h-24 object-contain" style={{ backgroundColor: 'transparent' }} />
+              <img src="/images/mflogo.png" alt="Frame Logo" className="w-24 h-24 object-contain" style={{ backgroundColor: 'transparent', filter: 'drop-shadow(0 0 1px white) drop-shadow(0 0 1px white)' }} />
               <h1 
                 className="text-5xl font-bold" 
                 style={{ 

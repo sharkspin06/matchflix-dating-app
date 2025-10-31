@@ -8,6 +8,7 @@ import profileRoutes from './routes/profile.routes';
 import userRoutes from './routes/user.routes';
 import matchRoutes from './routes/match.routes';
 import messageRoutes from './routes/message.routes';
+import passRoutes from './routes/pass.routes';
 import { initializeSocket } from './socket/socket';
 
 dotenv.config();
@@ -32,6 +33,7 @@ app.use('/api/profile', profileRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/matches', matchRoutes);
 app.use('/api/likes', matchRoutes); // Also mount match routes at /api/likes for convenience
+app.use('/api/passes', passRoutes);
 app.use('/api/messages', messageRoutes);
 
 // Health check

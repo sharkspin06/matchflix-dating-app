@@ -2,10 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { User, MapPin, Briefcase, Edit2, Camera, Heart, Film, LogOut, Home as HomeIcon, Zap, MessageCircle, Users, Sparkles, UserPlus, Smile, HeartHandshake, Globe, Coffee, Sun, Moon, PawPrint, Wine, Cigarette } from 'lucide-react';
+import { User, MapPin, Briefcase, Edit2, Camera, Heart, Film, LogOut, Home as HomeIcon, Zap, MessageCircle, Users, Sparkles, UserPlus, Smile, HeartHandshake, Globe, Coffee, PawPrint, Wine, Cigarette } from 'lucide-react';
+import { useTheme } from '@/contexts/ThemeContext';
+import ThemeToggle from '@/components/ThemeToggle';
+import { notificationService } from '@/lib/notifications';
 
 export default function HomePage() {
   const router = useRouter();
+  const { isDarkMode } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<any>(null);
@@ -40,7 +44,6 @@ export default function HomePage() {
   const [showSmokingModal, setShowSmokingModal] = useState(false);
   const [gettingLocation, setGettingLocation] = useState(false);
   const [selectedProfilePic, setSelectedProfilePic] = useState<File | null>(null);
-  const [isDarkMode, setIsDarkMode] = useState(false);
   const [filmSearch, setFilmSearch] = useState('');
   const [filmResults, setFilmResults] = useState<any[]>([]);
   const [searchingFilms, setSearchingFilms] = useState(false);
@@ -50,6 +53,15 @@ export default function HomePage() {
     fetchProfile();
     fetchLikedYouCount();
     fetchUnreadCount();
+    
+    // Request notification permission
+    notificationService.requestPermission().then((granted) => {
+      if (granted) {
+        console.log('✅ Notification permission granted');
+      } else {
+        console.log('❌ Notification permission denied');
+      }
+    });
   }, []);
 
   const fetchProfile = async () => {
@@ -298,17 +310,17 @@ export default function HomePage() {
 
   if (!mounted || loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-gray-600">Loading profile...</div>
+      <div className={`min-h-screen ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'} flex items-center justify-center`}>
+        <div className={isDarkMode ? 'text-gray-300' : 'text-gray-600'}>Loading profile...</div>
       </div>
     );
   }
 
   if (!profile) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className={`min-h-screen ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'} flex items-center justify-center`}>
         <div className="text-center">
-          <p className="text-gray-600 text-xl mb-4">Profile not found</p>
+          <p className={`${isDarkMode ? 'text-gray-300' : 'text-gray-600'} text-xl mb-4`}>Profile not found</p>
           <button 
             onClick={() => router.push('/login')}
             className="px-6 py-2 bg-[#800020] text-white rounded-lg hover:bg-[#660019]"
@@ -321,26 +333,20 @@ export default function HomePage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
+    <div className={`min-h-screen flex flex-col ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-center relative">
+      <header className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} border-b px-6 py-4 flex items-center justify-center relative`}>
         {/* Dark Mode Toggle */}
-        <button 
-          onClick={() => setIsDarkMode(!isDarkMode)}
-          className="absolute left-6 p-2 rounded-full bg-gray-100 hover:bg-gray-200 transition-all duration-300"
-        >
-          {isDarkMode ? (
-            <Sun className="w-6 h-6 text-yellow-400" />
-          ) : (
-            <Moon className="w-6 h-6 text-gray-700" />
-          )}
-        </button>
+        <div className="absolute left-6">
+          <ThemeToggle />
+        </div>
 
         <div className="flex items-center gap-3">
           <img 
             src="/images/mflogo.png" 
             alt="MatchFlix Logo" 
             className="w-10 h-10 object-contain"
+            style={{ filter: 'drop-shadow(0 0 1px white) drop-shadow(0 0 1px white)' }}
           />
           <h1 
             className="text-3xl font-bold" 
@@ -351,7 +357,9 @@ export default function HomePage() {
               background: 'linear-gradient(135deg, #800020 0%, #ff6b6b 50%, #800020 100%)',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text'
+              backgroundClip: 'text',
+              WebkitTextStroke: '0.5px rgba(255, 255, 255, 0.3)',
+              textShadow: '0 0 1px rgba(255, 255, 255, 0.2)'
             }}
           >
             Matchflix
@@ -360,7 +368,7 @@ export default function HomePage() {
 
         <button
           onClick={handleLogout}
-          className="absolute right-6 flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-[#800020] transition-colors"
+          className={`absolute right-6 flex items-center gap-2 px-4 py-2 ${isDarkMode ? 'text-gray-300 hover:text-[#800020]' : 'text-gray-600 hover:text-[#800020]'} transition-colors`}
         >
           <LogOut className="w-5 h-5" />
           <span className="text-sm font-medium">Logout</span>
@@ -371,7 +379,7 @@ export default function HomePage() {
       <main className="flex-1 overflow-y-auto pb-24 px-4 py-6">
         <div className="max-w-2xl mx-auto">
           {/* Profile Header Card */}
-          <div className="bg-white rounded-3xl shadow-lg overflow-hidden mb-6">
+          <div className={`${isDarkMode ? 'bg-gray-800' : 'bg-white'} rounded-3xl shadow-lg overflow-hidden mb-6`}>
             {/* Profile Info */}
             <div className="p-6">
               <div className="flex items-start gap-4 mb-4">
@@ -380,9 +388,12 @@ export default function HomePage() {
                   <div className="w-24 h-24 rounded-full overflow-hidden bg-gradient-to-br from-[#800020] to-[#660019] border-4 border-white shadow-lg">
                     {profile.photos && profile.photos[0] ? (
                       <img 
-                        src={`http://localhost:5001${profile.photos[0]}`} 
+                        src={profile.photos[0].startsWith('http') ? profile.photos[0] : `http://localhost:5001${profile.photos[0]}`}
                         alt={profile.name}
                         className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.currentTarget.src = '/placeholder-avatar.png';
+                        }}
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
@@ -397,8 +408,8 @@ export default function HomePage() {
 
                 {/* Name and Info */}
                 <div className="flex-1">
-                  <h2 className="text-3xl font-bold text-gray-800">{profile.name}, {profile.age}</h2>
-                  <div className="flex flex-wrap items-center gap-3 mt-2 text-gray-600 text-sm">
+                  <h2 className={`text-3xl font-bold ${isDarkMode ? 'text-gray-100' : 'text-gray-800'}`}>{profile.name}, {profile.age}</h2>
+                  <div className={`flex flex-wrap items-center gap-3 mt-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} text-sm`}>
                     {profile.location && (
                       <div className="flex items-center gap-1">
                         <MapPin className="w-4 h-4" />
@@ -427,53 +438,53 @@ export default function HomePage() {
               {/* Bio */}
               {profile.bio && (
                 <div className="mb-6">
-                  <h3 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                  <h3 className={`text-sm font-semibold ${isDarkMode ? 'text-gray-300' : 'text-gray-700'} mb-2 flex items-center gap-2`}>
                     <User className="w-4 h-4" />
                     About Me
                   </h3>
-                  <p className="text-gray-600">{profile.bio}</p>
+                  <p className={isDarkMode ? 'text-gray-300' : 'text-gray-600'}>{profile.bio}</p>
                 </div>
               )}
 
               {/* Basics Section */}
               {(profile.zodiac || profile.education || profile.pets || profile.drinkingHabits || profile.smokingHabits) && (
                 <div className="mb-6">
-                  <h3 className="text-sm font-semibold text-gray-700 mb-3">Basics</h3>
+                  <h3 className={`text-sm font-semibold ${isDarkMode ? 'text-gray-300' : 'text-gray-700'} mb-3`}>Basics</h3>
                   <div className="flex flex-wrap gap-2">
                     {profile.zodiac && (
-                      <div className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 rounded-full">
-                        <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <div className={`inline-flex items-center gap-2 px-4 py-2 ${isDarkMode ? 'bg-gray-700' : 'bg-gray-100'} rounded-full`}>
+                        <svg className={`w-5 h-5 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
                         </svg>
-                        <span className="text-gray-800 font-medium">{profile.zodiac}</span>
+                        <span className={`${isDarkMode ? 'text-gray-200' : 'text-gray-800'} font-medium`}>{profile.zodiac}</span>
                       </div>
                     )}
                     {profile.education && (
-                      <div className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 rounded-full">
-                        <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <div className={`inline-flex items-center gap-2 px-4 py-2 ${isDarkMode ? 'bg-gray-700' : 'bg-gray-100'} rounded-full`}>
+                        <svg className={`w-5 h-5 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l9-5-9-5-9 5 9 5z" />
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14zm-4 6v-7.5l4-2.222" />
                         </svg>
-                        <span className="text-gray-800 font-medium">{profile.education}</span>
+                        <span className={`${isDarkMode ? 'text-gray-200' : 'text-gray-800'} font-medium`}>{profile.education}</span>
                       </div>
                     )}
                     {profile.pets && (
-                      <div className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 rounded-full">
-                        <PawPrint className="w-5 h-5 text-gray-700" />
-                        <span className="text-gray-800 font-medium">{profile.pets}</span>
+                      <div className={`inline-flex items-center gap-2 px-4 py-2 ${isDarkMode ? 'bg-gray-700' : 'bg-gray-100'} rounded-full`}>
+                        <PawPrint className={`w-5 h-5 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`} />
+                        <span className={`${isDarkMode ? 'text-gray-200' : 'text-gray-800'} font-medium`}>{profile.pets}</span>
                       </div>
                     )}
                     {profile.drinkingHabits && (
-                      <div className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 rounded-full">
-                        <Wine className="w-5 h-5 text-gray-700" />
-                        <span className="text-gray-800 font-medium">{profile.drinkingHabits}</span>
+                      <div className={`inline-flex items-center gap-2 px-4 py-2 ${isDarkMode ? 'bg-gray-700' : 'bg-gray-100'} rounded-full`}>
+                        <Wine className={`w-5 h-5 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`} />
+                        <span className={`${isDarkMode ? 'text-gray-200' : 'text-gray-800'} font-medium`}>{profile.drinkingHabits}</span>
                       </div>
                     )}
                     {profile.smokingHabits && (
-                      <div className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 rounded-full">
-                        <Cigarette className="w-5 h-5 text-gray-700" />
-                        <span className="text-gray-800 font-medium">{profile.smokingHabits}</span>
+                      <div className={`inline-flex items-center gap-2 px-4 py-2 ${isDarkMode ? 'bg-gray-700' : 'bg-gray-100'} rounded-full`}>
+                        <Cigarette className={`w-5 h-5 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`} />
+                        <span className={`${isDarkMode ? 'text-gray-200' : 'text-gray-800'} font-medium`}>{profile.smokingHabits}</span>
                       </div>
                     )}
                   </div>
@@ -485,16 +496,16 @@ export default function HomePage() {
 
           {/* Interests Section */}
           {profile.interests && profile.interests.length > 0 && (
-            <div className="bg-white rounded-3xl shadow-lg p-6 mb-6">
-              <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                <Heart className="w-5 h-5 text-[#800020]" />
+            <div className={`${isDarkMode ? 'bg-gray-800' : 'bg-white'} rounded-3xl shadow-lg p-6 mb-6`}>
+              <h3 className={`text-lg font-semibold ${isDarkMode ? 'text-gray-100' : 'text-gray-800'} mb-4 flex items-center gap-2`}>
+                <Heart className={`w-5 h-5 ${isDarkMode ? 'text-pink-400' : 'text-[#800020]'}`} />
                 My Interests
               </h3>
               <div className="flex flex-wrap gap-2">
                 {profile.interests.map((interest: string, index: number) => (
                   <span 
                     key={index}
-                    className="px-4 py-2 bg-[#800020]/10 text-[#800020] rounded-full text-sm font-medium border border-[#800020]/20"
+                    className={`px-4 py-2 ${isDarkMode ? 'bg-pink-400/20 text-pink-300 border-pink-400/30' : 'bg-[#800020]/10 text-[#800020] border-[#800020]/20'} rounded-full text-sm font-medium border`}
                   >
                     {interest}
                   </span>
@@ -505,16 +516,16 @@ export default function HomePage() {
 
           {/* Relationship Goals Section */}
           {profile.relationshipGoals && profile.relationshipGoals.length > 0 && (
-            <div className="bg-white rounded-3xl shadow-lg p-6 mb-6">
-              <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                <HeartHandshake className="w-5 h-5 text-[#800020]" />
+            <div className={`${isDarkMode ? 'bg-gray-800' : 'bg-white'} rounded-3xl shadow-lg p-6 mb-6`}>
+              <h3 className={`text-lg font-semibold ${isDarkMode ? 'text-gray-100' : 'text-gray-800'} mb-4 flex items-center gap-2`}>
+                <HeartHandshake className={`w-5 h-5 ${isDarkMode ? 'text-pink-400' : 'text-[#800020]'}`} />
                 Relationship Goals
               </h3>
               <div className="flex flex-wrap gap-2">
                 {profile.relationshipGoals.map((goal: string, index: number) => (
                   <span 
                     key={index}
-                    className="px-4 py-2 bg-[#800020]/10 text-[#800020] rounded-full text-sm font-medium border border-[#800020]/20"
+                    className={`px-4 py-2 ${isDarkMode ? 'bg-pink-400/20 text-pink-300 border-pink-400/30' : 'bg-[#800020]/10 text-[#800020] border-[#800020]/20'} rounded-full text-sm font-medium border`}
                   >
                     {goal}
                   </span>
@@ -524,9 +535,9 @@ export default function HomePage() {
           )}
 
           {/* Top Films Section */}
-          <div className="bg-white rounded-3xl shadow-lg p-6 mb-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-              <Film className="w-5 h-5 text-[#800020]" />
+          <div className={`${isDarkMode ? 'bg-gray-800' : 'bg-white'} rounded-3xl shadow-lg p-6 mb-6`}>
+            <h3 className={`text-lg font-semibold ${isDarkMode ? 'text-gray-100' : 'text-gray-800'} mb-4 flex items-center gap-2`}>
+              <Film className={`w-5 h-5 ${isDarkMode ? 'text-pink-400' : 'text-[#800020]'}`} />
               My Top Films
             </h3>
             {profile.topFilms && profile.topFilms.length > 0 ? (
@@ -551,9 +562,9 @@ export default function HomePage() {
           </div>
 
           {/* Preferences Section */}
-          <div className="bg-white rounded-3xl shadow-lg p-6 mb-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-              <svg className="w-5 h-5 text-[#800020]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className={`${isDarkMode ? 'bg-gray-800' : 'bg-white'} rounded-3xl shadow-lg p-6 mb-6`}>
+            <h3 className={`text-lg font-semibold ${isDarkMode ? 'text-gray-100' : 'text-gray-800'} mb-4 flex items-center gap-2`}>
+              <svg className={`w-5 h-5 ${isDarkMode ? 'text-pink-400' : 'text-[#800020]'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
               </svg>
               My Preferences
@@ -561,12 +572,12 @@ export default function HomePage() {
             <div className="space-y-4">
               {profile.preferredGender && profile.preferredGender.length > 0 && (
                 <div>
-                  <p className="text-sm text-gray-500 mb-2">Looking for</p>
+                  <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'} mb-2`}>Looking for</p>
                   <div className="flex flex-wrap gap-2">
                     {profile.preferredGender.map((gender: string, index: number) => (
                       <span 
                         key={index}
-                        className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm font-medium"
+                        className={`px-3 py-1 ${isDarkMode ? 'bg-gray-700 text-gray-200' : 'bg-gray-100 text-gray-700'} rounded-full text-sm font-medium`}
                       >
                         {gender.charAt(0).toUpperCase() + gender.slice(1)}
                       </span>
@@ -576,16 +587,16 @@ export default function HomePage() {
               )}
               {(profile.preferredAgeMin || profile.preferredAgeMax) && (
                 <div>
-                  <p className="text-sm text-gray-500 mb-2">Age Range</p>
-                  <p className="text-base font-medium text-gray-800">
+                  <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'} mb-2`}>Age Range</p>
+                  <p className={`text-base font-medium ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>
                     {profile.preferredAgeMin || 18} - {profile.preferredAgeMax || 50} years old
                   </p>
                 </div>
               )}
               {profile.preferredDistance && (
                 <div>
-                  <p className="text-sm text-gray-500 mb-2">Distance</p>
-                  <p className="text-base font-medium text-gray-800">
+                  <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'} mb-2`}>Distance</p>
+                  <p className={`text-base font-medium ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>
                     Within {profile.preferredDistance} km
                   </p>
                 </div>
@@ -621,9 +632,12 @@ export default function HomePage() {
                     <div className="w-24 h-24 rounded-full overflow-hidden bg-gradient-to-br from-[#800020] to-[#660019] border-4 border-gray-200">
                       {profilePicPreview || (profile.photos && profile.photos[0]) ? (
                         <img 
-                          src={profilePicPreview || `http://localhost:5001${profile.photos[0]}`} 
+                          src={profilePicPreview || (profile.photos[0].startsWith('http') ? profile.photos[0] : `http://localhost:5001${profile.photos[0]}`)}
                           alt="Profile preview"
                           className="w-full h-full object-cover"
+                          onError={(e) => {
+                            e.currentTarget.src = '/placeholder-avatar.png';
+                          }}
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">
@@ -1367,65 +1381,64 @@ export default function HomePage() {
       )}
 
       {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-6 py-3">
+      <nav className={`fixed bottom-0 left-0 right-0 ${isDarkMode ? 'bg-gray-900/95' : 'bg-white/95'} backdrop-blur-lg border-t ${isDarkMode ? 'border-gray-800' : 'border-gray-200'} px-4 sm:px-6 py-2 shadow-lg`}>
         <div className="max-w-md mx-auto flex items-center justify-around">
           <button 
             onClick={() => router.push('/home')}
-            className="flex flex-col items-center gap-1 text-[#800020] transition-all duration-300 hover:scale-110 active:scale-95 relative"
+            className={`flex flex-col items-center gap-0.5 min-w-[60px] py-2 px-3 rounded-2xl transition-all duration-300 ${isDarkMode ? 'bg-pink-400/10 text-pink-400' : 'bg-[#800020]/10 text-[#800020]'}`}
           >
-            <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-12 h-1 bg-[#800020] rounded-full transition-all duration-300"></div>
             <HomeIcon className="w-6 h-6 transition-transform duration-300" />
-            <span className="text-xs font-medium">Home</span>
+            <span className="text-[10px] font-semibold mt-0.5">Home</span>
           </button>
           
           <button 
             onClick={() => router.push('/liked-you')}
-            className="flex flex-col items-center gap-1 text-gray-400 hover:text-[#800020] transition-all duration-300 hover:scale-110 active:scale-95"
+            className={`flex flex-col items-center gap-0.5 min-w-[60px] py-2 px-3 rounded-2xl transition-all duration-300 ${isDarkMode ? 'hover:bg-gray-800 text-gray-400 hover:text-pink-400' : 'hover:bg-gray-100 text-gray-500 hover:text-[#800020]'}`}
           >
             <div className="relative">
               <Heart className="w-6 h-6 transition-transform duration-300" />
               {likedYouCount > 0 && (
-                <div className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                <div className="absolute -top-2 -right-2 bg-gradient-to-r from-pink-500 to-red-500 text-white text-[9px] font-bold rounded-full w-5 h-5 flex items-center justify-center shadow-lg animate-pulse">
                   {likedYouCount > 9 ? '9+' : likedYouCount}
                 </div>
               )}
             </div>
-            <span className="text-xs font-medium">Liked You</span>
+            <span className="text-[10px] font-semibold mt-0.5">Liked</span>
           </button>
           
           <button 
             onClick={() => router.push('/discover')}
-            className="flex flex-col items-center gap-1 text-gray-400 hover:text-[#800020] transition-all duration-300 hover:scale-110 active:scale-95"
+            className={`flex flex-col items-center gap-0.5 min-w-[60px] py-2 px-3 rounded-2xl transition-all duration-300 ${isDarkMode ? 'hover:bg-gray-800 text-gray-400 hover:text-pink-400' : 'hover:bg-gray-100 text-gray-500 hover:text-[#800020]'}`}
           >
             <svg className="w-6 h-6 transition-transform duration-300" viewBox="0 0 24 24" fill="currentColor">
               <rect x="2" y="6" width="20" height="3" rx="1.5"/>
               <rect x="2" y="11" width="20" height="3" rx="1.5"/>
               <rect x="2" y="16" width="20" height="3" rx="1.5"/>
             </svg>
-            <span className="text-xs font-medium">Discover</span>
+            <span className="text-[10px] font-semibold mt-0.5">Discover</span>
           </button>
           
           <button 
             onClick={() => router.push('/messages')}
-            className="flex flex-col items-center gap-1 text-gray-400 hover:text-[#800020] transition-all duration-300 hover:scale-110 active:scale-95"
+            className={`flex flex-col items-center gap-0.5 min-w-[60px] py-2 px-3 rounded-2xl transition-all duration-300 ${isDarkMode ? 'hover:bg-gray-800 text-gray-400 hover:text-pink-400' : 'hover:bg-gray-100 text-gray-500 hover:text-[#800020]'}`}
           >
             <div className="relative">
               <MessageCircle className="w-6 h-6 transition-transform duration-300" />
               {unreadCount > 0 && (
-                <div className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                <div className="absolute -top-2 -right-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white text-[9px] font-bold rounded-full w-5 h-5 flex items-center justify-center shadow-lg animate-pulse">
                   {unreadCount > 9 ? '9+' : unreadCount}
                 </div>
               )}
             </div>
-            <span className="text-xs font-medium">Messages</span>
+            <span className="text-[10px] font-semibold mt-0.5">Messages</span>
           </button>
           
           <button 
             onClick={() => router.push('/matches')}
-            className="flex flex-col items-center gap-1 text-gray-400 hover:text-[#800020] transition-all duration-300 hover:scale-110 active:scale-95"
+            className={`flex flex-col items-center gap-0.5 min-w-[60px] py-2 px-3 rounded-2xl transition-all duration-300 ${isDarkMode ? 'hover:bg-gray-800 text-gray-400 hover:text-pink-400' : 'hover:bg-gray-100 text-gray-500 hover:text-[#800020]'}`}
           >
             <Users className="w-6 h-6 transition-transform duration-300" />
-            <span className="text-xs font-medium">Matches</span>
+            <span className="text-[10px] font-semibold mt-0.5">Matches</span>
           </button>
         </div>
       </nav>

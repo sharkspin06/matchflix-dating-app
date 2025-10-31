@@ -354,7 +354,7 @@ export default function RegisterPage() {
           <div className="rounded-3xl shadow-2xl p-8 space-y-6 bg-white">
             <div className="text-center mb-8">
               <div className="flex items-center justify-center gap-4 mb-4">
-                <img src="/images/mflogo.png" alt="MatchFlix Logo" className="w-16 h-16 object-contain" style={{ backgroundColor: 'transparent' }} />
+                <img src="/images/mflogo.png" alt="MatchFlix Logo" className="w-16 h-16 object-contain" style={{ backgroundColor: 'transparent', filter: 'drop-shadow(0 0 1px white) drop-shadow(0 0 1px white)' }} />
                 <h1 
                   className="text-4xl font-bold" 
                   style={{ 
@@ -846,7 +846,7 @@ export default function RegisterPage() {
             <div className="text-center space-y-6">
               {/* Logo */}
               <div className="flex justify-center mb-6">
-                <img src="/images/mflogo.png" alt="MatchFlix Logo" className="w-32 h-32 object-contain" style={{ backgroundColor: 'transparent' }} />
+                <img src="/images/mflogo.png" alt="MatchFlix Logo" className="w-32 h-32 object-contain" style={{ backgroundColor: 'transparent', filter: 'drop-shadow(0 0 1px white) drop-shadow(0 0 1px white)' }} />
               </div>
 
               <h2 className="text-3xl font-bold text-gray-800">Before you swipe</h2>

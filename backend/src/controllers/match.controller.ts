@@ -356,3 +356,88 @@ export const getReceivedLikes = async (req: AuthRequest, res: Response) => {
     res.status(500).json({ error: 'Failed to get received likes' });
   }
 };
+
+/**
+ * Unmatch with another user
+ * @route DELETE /api/matches/:userId
+ * @access Private (requires authentication)
+ * @returns { success: boolean, message: string }
+ */
+export const unmatchUser = async (req: AuthRequest, res: Response) => {
+  try {
+    const currentUserId = req.userId;
+    const { userId: targetUserId } = req.params;
+
+    // Validate authentication
+    if (!currentUserId) {
+      return res.status(401).json({ 
+        error: 'User not authenticated',
+        message: 'Please log in to unmatch users'
+      });
+    }
+
+    // Validate target user ID
+    if (!targetUserId) {
+      return res.status(400).json({ 
+        error: 'Bad request',
+        message: 'User ID is required' 
+      });
+    }
+
+    // Prevent self-unmatching
+    if (currentUserId === targetUserId) {
+      return res.status(400).json({ 
+        error: 'Invalid operation',
+        message: 'Cannot unmatch yourself' 
+      });
+    }
+
+    // Find the match (ensure consistent ordering)
+    const [user1Id, user2Id] = [currentUserId, targetUserId].sort();
+
+    const match = await prisma.match.findFirst({
+      where: {
+        user1Id,
+        user2Id,
+      },
+    });
+
+    if (!match) {
+      return res.status(404).json({ 
+        error: 'Match not found',
+        message: 'No match exists between these users' 
+      });
+    }
+
+    // Delete the match
+    await prisma.match.delete({
+      where: {
+        id: match.id,
+      },
+    });
+
+    // Optionally, delete the mutual likes as well
+    await prisma.like.deleteMany({
+      where: {
+        OR: [
+          { fromUserId: currentUserId, toUserId: targetUserId },
+          { fromUserId: targetUserId, toUserId: currentUserId },
+        ],
+      },
+    });
+
+    console.log(`[Unmatch] User ${currentUserId} unmatched with ${targetUserId}`);
+
+    res.status(200).json({
+      success: true,
+      message: 'Successfully unmatched',
+    });
+  } catch (error) {
+    console.error('[Unmatch] Error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Failed to unmatch';
+    res.status(500).json({ 
+      error: 'Internal server error',
+      message: errorMessage
+    });
+  }
+};

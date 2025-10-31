@@ -116,8 +116,15 @@ class ApiClient {
   }
 
   // Messages
-  async getMessages(matchId: string) {
-    return this.request<any[]>(`/api/messages/${matchId}`);
+  async getMessages(matchId: string, limit?: number, cursor?: string) {
+    const params = new URLSearchParams();
+    if (limit) params.append('limit', limit.toString());
+    if (cursor) params.append('cursor', cursor);
+    
+    const queryString = params.toString();
+    const endpoint = `/api/messages/${matchId}${queryString ? `?${queryString}` : ''}`;
+    
+    return this.request<any>(endpoint);
   }
 }
 

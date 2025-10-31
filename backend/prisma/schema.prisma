@@ -25,6 +25,12 @@ model User {
   // Likes received by this user
   likesReceived Like[] @relation("LikesReceived")
 
+  // Passes given by this user
+  passesGiven Pass[] @relation("PassesGiven")
+  
+  // Passes received by this user
+  passesReceived Pass[] @relation("PassesReceived")
+
   // Matches where this user is user1
   matchesAsUser1 Match[] @relation("MatchUser1")
   
@@ -47,6 +53,8 @@ model Profile {
   gender    String   // "male", "female", "other", "non-binary", "transgender", etc.
   bio       String?
   location  String?
+  latitude  Float?   // Latitude coordinate
+  longitude Float?   // Longitude coordinate
   zodiac    String?  // Zodiac sign
   education String?  // Education level
   pets      String?  // Pets preference
@@ -82,6 +90,21 @@ model Like {
 
   @@unique([fromUserId, toUserId])
   @@map("likes")
+}
+
+model Pass {
+  id        String   @id @default(uuid())
+  
+  fromUserId String
+  fromUser   User   @relation("PassesGiven", fields: [fromUserId], references: [id], onDelete: Cascade)
+  
+  toUserId   String
+  toUser     User   @relation("PassesReceived", fields: [toUserId], references: [id], onDelete: Cascade)
+  
+  createdAt DateTime @default(now())
+
+  @@unique([fromUserId, toUserId])
+  @@map("passes")
 }
 
 model Match {

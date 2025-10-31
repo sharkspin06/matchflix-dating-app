@@ -1,14 +1,16 @@
 import { Response } from 'express';
 import { PrismaClient, Profile } from '@prisma/client';
 import { AuthRequest } from '../middleware/auth.middleware';
+import { calculateDistance } from '../utils/distance.util';
 
 const prisma = new PrismaClient();
 
 /**
- * Interface for profile with match score
+ * Interface for profile with match score and distance
  */
 interface ProfileWithScore extends Profile {
   matchScore: number;
+  distance?: number;
   user: {
     id: string;
     email: string;
@@ -40,11 +42,24 @@ const calculateMatchScore = (currentProfile: Profile, targetProfile: Profile): n
  */
 const getInteractedUserIds = async (currentUserId: string): Promise<string[]> => {
   try {
+    // Get users that were liked
     const existingLikes = await prisma.like.findMany({
       where: { fromUserId: currentUserId },
       select: { toUserId: true },
     });
-    return existingLikes.map((like) => like.toUserId);
+    
+    // Get users that were passed
+    const existingPasses = await prisma.pass.findMany({
+      where: { fromUserId: currentUserId },
+      select: { toUserId: true },
+    });
+    
+    // Combine both lists and remove duplicates
+    const likedUserIds = existingLikes.map((like) => like.toUserId);
+    const passedUserIds = existingPasses.map((pass) => pass.toUserId);
+    const allInteractedIds = [...new Set([...likedUserIds, ...passedUserIds])];
+    
+    return allInteractedIds;
   } catch (error) {
     console.error('Error fetching interacted users:', error);
     throw new Error('Failed to fetch user interaction history');
@@ -119,18 +134,48 @@ export const discoverUsers = async (req: AuthRequest, res: Response) => {
     // Fetch potential matches
     const potentialMatches = await fetchPotentialMatches(currentUserId, interactedUserIds);
 
-    // Calculate match scores for each profile
-    const usersWithScores: ProfileWithScore[] = potentialMatches.map((profile) => ({
-      ...profile,
-      matchScore: calculateMatchScore(currentProfile, profile),
-    }));
+    // Calculate match scores and distances for each profile
+    const usersWithScores: ProfileWithScore[] = potentialMatches.map((profile) => {
+      const matchScore = calculateMatchScore(currentProfile, profile);
+      
+      // Calculate distance if both users have coordinates
+      let distance: number | undefined;
+      if (
+        currentProfile.latitude && currentProfile.longitude &&
+        profile.latitude && profile.longitude
+      ) {
+        distance = calculateDistance(
+          currentProfile.latitude,
+          currentProfile.longitude,
+          profile.latitude,
+          profile.longitude
+        );
+      }
+      
+      return {
+        ...profile,
+        matchScore,
+        distance,
+      };
+    });
+
+    // Filter to only show profiles with at least 1 matching interest
+    const matchedProfiles = usersWithScores.filter(profile => profile.matchScore > 0);
 
     // Sort by match score (higher scores first)
-    usersWithScores.sort((a, b) => b.matchScore - a.matchScore);
+    matchedProfiles.sort((a, b) => b.matchScore - a.matchScore);
 
-    console.log(`[Discover] Found ${usersWithScores.length} profiles for user ${currentUserId}`);
+    console.log(`[Discover] Found ${matchedProfiles.length} profiles with matching interests (out of ${usersWithScores.length} total) for user ${currentUserId}`);
 
-    res.status(200).json(usersWithScores);
+    // If no matches found, return all profiles (fallback)
+    // This prevents empty discover page if user has unique interests
+    const profilesToReturn = matchedProfiles.length > 0 ? matchedProfiles : usersWithScores;
+    
+    if (matchedProfiles.length === 0 && usersWithScores.length > 0) {
+      console.log(`[Discover] No matching interests found, returning all ${usersWithScores.length} profiles as fallback`);
+    }
+
+    res.status(200).json(profilesToReturn);
   } catch (error) {
     console.error('[Discover] Error:', error);
     const errorMessage = error instanceof Error ? error.message : 'Failed to discover users';
@@ -179,8 +224,27 @@ export const getUserById = async (req: AuthRequest, res: Response) => {
       });
     }
 
+    // Get current user's profile to calculate distance
+    const currentProfile = await prisma.profile.findUnique({
+      where: { userId: req.userId },
+    });
+
+    // Calculate distance if both users have coordinates
+    let distance: number | undefined;
+    if (
+      currentProfile?.latitude && currentProfile?.longitude &&
+      profile.latitude && profile.longitude
+    ) {
+      distance = calculateDistance(
+        currentProfile.latitude,
+        currentProfile.longitude,
+        profile.latitude,
+        profile.longitude
+      );
+    }
+
     console.log(`[GetUser] Successfully fetched profile for user ${id}`);
-    res.status(200).json(profile);
+    res.status(200).json({ ...profile, distance });
   } catch (error) {
     console.error('[GetUser] Error:', error);
     const errorMessage = error instanceof Error ? error.message : 'Failed to get user';

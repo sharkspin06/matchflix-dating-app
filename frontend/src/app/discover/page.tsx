@@ -2,16 +2,19 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Sparkles, X, Heart, Star, MessageCircle, User, Zap, Home, Users, ThumbsUp, ThumbsDown, Sun, Moon, LogOut } from 'lucide-react';
+import { Sparkles, X, Heart, Star, MessageCircle, User, Zap, Home, Users, ThumbsUp, ThumbsDown, LogOut } from 'lucide-react';
+import { useTheme } from '@/contexts/ThemeContext';
+import ThemeToggle from '@/components/ThemeToggle';
+import { notificationService } from '@/lib/notifications';
 
 export default function DiscoverPage() {
   const router = useRouter();
+  const { isDarkMode } = useTheme();
   const [currentProfile, setCurrentProfile] = useState(0);
   const [mounted, setMounted] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState(false);
   const [showProfileDetails, setShowProfileDetails] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [hasDragged, setHasDragged] = useState(false);
@@ -64,32 +67,42 @@ export default function DiscoverPage() {
         console.log('Unseen profiles after filter:', unseenProfiles.length);
         
         // Transform API data to match component format
-        const transformedProfiles = unseenProfiles.map((profile: any) => ({
-          name: profile.name,
-          age: profile.age,
-          location: profile.location || 'Unknown',
-          occupation: profile.bio || '',
-          image: profile.photos?.[0] ? `http://localhost:5001${profile.photos[0]}` : 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=800&h=1200&fit=crop',
-          bio: profile.bio || '',
-          about: profile.bio || '',
-          interests: profile.interests || [],
-          location_detail: profile.location || 'Unknown',
-          lives_in: profile.location?.split(',')[0] || 'Unknown',
-          distance: '1.5 km away', // You can calculate this based on coordinates
-          topFilms: (profile.topFilms || []).map((poster: string) => ({ 
-            poster: poster.startsWith('http') ? poster : `http://localhost:5001${poster}` 
-          })),
-          favoriteGenres: profile.interests || [],
-          zodiac: profile.zodiac || '',
-          education: profile.education || '',
-          pets: profile.pets || '',
-          drinkingHabits: profile.drinkingHabits || '',
-          smokingHabits: profile.smokingHabits || '',
-          gender: profile.gender || '',
-          preferredGender: profile.preferredGender || [],
-          relationshipGoals: profile.relationshipGoals || [],
-          userId: profile.userId,
-        }));
+        const transformedProfiles = unseenProfiles.map((profile: any) => {
+          let imageUrl = 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=800&h=1200&fit=crop';
+          
+          if (profile.photos?.[0]) {
+            const photoPath = profile.photos[0];
+            imageUrl = photoPath.startsWith('http') 
+              ? photoPath 
+              : `http://localhost:5001${photoPath}`;
+          }
+          
+          return {
+            userId: profile.userId,
+            name: profile.name,
+            age: profile.age,
+            location: profile.location || 'Unknown',
+            occupation: profile.bio || '',
+            image: imageUrl,
+            bio: profile.bio || '',
+            about: profile.bio || '',
+            interests: profile.interests || [],
+            favoriteGenres: profile.interests || [],
+            zodiac: profile.zodiac || '',
+            education: profile.education || '',
+            pets: profile.pets || '',
+            drinkingHabits: profile.drinkingHabits || '',
+            smokingHabits: profile.smokingHabits || '',
+            gender: profile.gender || '',
+            preferredGender: profile.preferredGender || [],
+            relationshipGoals: profile.relationshipGoals || [],
+            matchScore: profile.matchScore || 0,
+            topFilms: (profile.topFilms || []).map((poster: string) => ({ 
+              poster: poster.startsWith('http') ? poster : `http://localhost:5001${poster}` 
+            })),
+            distance: profile.distance !== undefined ? `${profile.distance} km away` : undefined,
+          };
+        });
         setProfiles(transformedProfiles);
         console.log('Set profiles state with:', transformedProfiles.length, 'profiles');
       } else {
@@ -167,11 +180,12 @@ export default function DiscoverPage() {
       // Save to localStorage
       localStorage.setItem('seenProfileIds', JSON.stringify(updatedSeenIds));
       
-      // If swiped right, send like to backend
+      const token = localStorage.getItem('token');
+      
+      // Send like or pass to backend
       if (direction === 'right') {
         console.log('Sending like to user:', currentProfileData.userId, currentProfileData.name);
         try {
-          const token = localStorage.getItem('token');
           if (token) {
             const response = await fetch('http://localhost:5001/api/likes', {
               method: 'POST',
@@ -209,6 +223,31 @@ export default function DiscoverPage() {
           }
         } catch (error) {
           console.error('Error sending like:', error);
+        }
+      } else {
+        // Swiped left - send pass to backend
+        console.log('Sending pass for user:', currentProfileData.userId, currentProfileData.name);
+        try {
+          if (token) {
+            const response = await fetch('http://localhost:5001/api/passes', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+              },
+              body: JSON.stringify({
+                passedUserId: currentProfileData.userId,
+              }),
+            });
+            
+            if (response.ok) {
+              console.log('✅ Pass recorded successfully!');
+            } else {
+              console.error('❌ Failed to record pass. Status:', response.status);
+            }
+          }
+        } catch (error) {
+          console.error('Error recording pass:', error);
         }
       }
     }
@@ -300,22 +339,21 @@ export default function DiscoverPage() {
         {/* Header */}
         <header className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} border-b px-6 py-4 flex items-center justify-center relative`}>
           {/* Theme Toggle */}
-          <button 
-            onClick={() => setIsDarkMode(!isDarkMode)}
-            className={`absolute left-6 p-2 rounded-full transition-colors ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
-          >
-            {isDarkMode ? <Sun className="w-6 h-6 text-yellow-400" /> : <Moon className="w-6 h-6 text-gray-700" />}
-          </button>
+          <div className="absolute left-6">
+            <ThemeToggle />
+          </div>
           <h1 
             className="text-3xl font-bold" 
             style={{ 
-              fontFamily: '"Kavoon", serif', 
-              fontWeight: 400, 
+              fontFamily: 'Kavoon, cursive',
+              fontWeight: 400,
               fontStyle: 'normal',
               background: 'linear-gradient(135deg, #800020 0%, #ff6b6b 50%, #800020 100%)',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text'
+              backgroundClip: 'text',
+              WebkitTextStroke: '0.5px rgba(255, 255, 255, 0.3)',
+              textShadow: '0 0 1px rgba(255, 255, 255, 0.2)'
             }}
           >
             Matchflix
@@ -344,62 +382,61 @@ export default function DiscoverPage() {
         </main>
 
         {/* Bottom Navigation */}
-        <nav className={`fixed bottom-0 left-0 right-0 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} border-t px-6 py-3`}>
+        <nav className={`fixed bottom-0 left-0 right-0 ${isDarkMode ? 'bg-gray-900/95' : 'bg-white/95'} backdrop-blur-lg border-t ${isDarkMode ? 'border-gray-800' : 'border-gray-200'} px-4 sm:px-6 py-2 shadow-lg`}>
           <div className="max-w-md mx-auto flex items-center justify-around">
             <button 
               onClick={() => router.push('/home')}
-              className="flex flex-col items-center gap-1 text-gray-400 hover:text-[#800020] transition-all duration-300 hover:scale-110 active:scale-95"
+              className={`flex flex-col items-center gap-0.5 min-w-[60px] py-2 px-3 rounded-2xl transition-all duration-300 ${isDarkMode ? 'hover:bg-gray-800 text-gray-400 hover:text-pink-400' : 'hover:bg-gray-100 text-gray-500 hover:text-[#800020]'}`}
             >
               <Home className="w-6 h-6 transition-transform duration-300" />
-              <span className="text-xs font-medium">Home</span>
+              <span className="text-[10px] font-semibold mt-0.5">Home</span>
             </button>
             
             <button 
               onClick={() => router.push('/liked-you')}
-              className="flex flex-col items-center gap-1 text-gray-400 hover:text-[#800020] transition-all duration-300 hover:scale-110 active:scale-95"
+              className={`flex flex-col items-center gap-0.5 min-w-[60px] py-2 px-3 rounded-2xl transition-all duration-300 ${isDarkMode ? 'hover:bg-gray-800 text-gray-400 hover:text-pink-400' : 'hover:bg-gray-100 text-gray-500 hover:text-[#800020]'}`}
             >
               <div className="relative">
                 <Heart className="w-6 h-6 transition-transform duration-300" />
                 {likedYouCount > 0 && (
-                  <div className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                  <div className="absolute -top-2 -right-2 bg-gradient-to-r from-pink-500 to-red-500 text-white text-[9px] font-bold rounded-full w-5 h-5 flex items-center justify-center shadow-lg animate-pulse">
                     {likedYouCount > 9 ? '9+' : likedYouCount}
                   </div>
                 )}
               </div>
-              <span className="text-xs font-medium">Liked You</span>
+              <span className="text-[10px] font-semibold mt-0.5">Liked</span>
             </button>
             
-            <button className="flex flex-col items-center gap-1 text-[#800020] transition-all duration-300 hover:scale-110 active:scale-95 relative">
-              <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-12 h-1 bg-[#800020] rounded-full transition-all duration-300"></div>
+            <button className={`flex flex-col items-center gap-0.5 min-w-[60px] py-2 px-3 rounded-2xl transition-all duration-300 ${isDarkMode ? 'bg-pink-400/10 text-pink-400' : 'bg-[#800020]/10 text-[#800020]'}`}>
               <svg className="w-6 h-6 transition-transform duration-300" viewBox="0 0 24 24" fill="currentColor">
                 <rect x="2" y="6" width="20" height="3" rx="1.5"/>
                 <rect x="2" y="11" width="20" height="3" rx="1.5"/>
                 <rect x="2" y="16" width="20" height="3" rx="1.5"/>
               </svg>
-              <span className="text-xs font-medium">Discover</span>
+              <span className="text-[10px] font-semibold mt-0.5">Discover</span>
             </button>
             
             <button 
               onClick={() => router.push('/messages')}
-              className="flex flex-col items-center gap-1 text-gray-400 hover:text-[#800020] transition-all duration-300 hover:scale-110 active:scale-95"
+              className={`flex flex-col items-center gap-0.5 min-w-[60px] py-2 px-3 rounded-2xl transition-all duration-300 ${isDarkMode ? 'hover:bg-gray-800 text-gray-400 hover:text-pink-400' : 'hover:bg-gray-100 text-gray-500 hover:text-[#800020]'}`}
             >
               <div className="relative">
                 <MessageCircle className="w-6 h-6 transition-transform duration-300" />
                 {unreadCount > 0 && (
-                  <div className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                  <div className="absolute -top-2 -right-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white text-[9px] font-bold rounded-full w-5 h-5 flex items-center justify-center shadow-lg animate-pulse">
                     {unreadCount > 9 ? '9+' : unreadCount}
                   </div>
                 )}
               </div>
-              <span className="text-xs font-medium">Messages</span>
+              <span className="text-[10px] font-semibold mt-0.5">Messages</span>
             </button>
             
             <button 
               onClick={() => router.push('/matches')}
-              className="flex flex-col items-center gap-1 text-gray-400 hover:text-[#800020] transition-all duration-300 hover:scale-110 active:scale-95"
+              className={`flex flex-col items-center gap-0.5 min-w-[60px] py-2 px-3 rounded-2xl transition-all duration-300 ${isDarkMode ? 'hover:bg-gray-800 text-gray-400 hover:text-pink-400' : 'hover:bg-gray-100 text-gray-500 hover:text-[#800020]'}`}
             >
               <Users className="w-6 h-6 transition-transform duration-300" />
-              <span className="text-xs font-medium">Matches</span>
+              <span className="text-[10px] font-semibold mt-0.5">Matches</span>
             </button>
           </div>
         </nav>
@@ -412,22 +449,16 @@ export default function DiscoverPage() {
       {/* Header */}
       <header className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} border-b px-6 py-4 flex items-center justify-center relative`}>
         {/* Theme Toggle */}
-        <button 
-          onClick={() => setIsDarkMode(!isDarkMode)}
-          className={`absolute left-6 p-2 rounded-full transition-all duration-300 ${isDarkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-100 hover:bg-gray-200'}`}
-        >
-          {isDarkMode ? (
-            <Sun className="w-6 h-6 text-yellow-400" />
-          ) : (
-            <Moon className="w-6 h-6 text-gray-700" />
-          )}
-        </button>
+        <div className="absolute left-6">
+          <ThemeToggle />
+        </div>
 
         <div className="flex items-center gap-3">
           <img 
             src="/images/mflogo.png" 
             alt="MatchFlix Logo" 
             className="w-10 h-10 object-contain"
+            style={{ filter: 'drop-shadow(0 0 1px white) drop-shadow(0 0 1px white)' }}
           />
           <h1 
             className="text-3xl font-bold" 
@@ -438,7 +469,9 @@ export default function DiscoverPage() {
               background: 'linear-gradient(135deg, #800020 0%, #ff6b6b 50%, #800020 100%)',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text'
+              backgroundClip: 'text',
+              WebkitTextStroke: '0.5px rgba(255, 255, 255, 0.3)',
+              textShadow: '0 0 1px rgba(255, 255, 255, 0.2)'
             }}
           >
             Matchflix
@@ -528,7 +561,9 @@ export default function DiscoverPage() {
                   
                   {/* Name and Details */}
                   <div>
-                    <h2 className="text-3xl font-bold mb-1">{profile.name}, {profile.age}</h2>
+                    <div className="flex items-center gap-2 mb-1">
+                      <h2 className="text-3xl font-bold">{profile.name}, {profile.age}</h2>
+                    </div>
                     <div className="flex items-center gap-2 text-sm mb-2">
                       <span>{profile.location}</span>
                     </div>
@@ -578,59 +613,61 @@ export default function DiscoverPage() {
       </main>
 
       {/* Bottom Navigation */}
-      <nav className={`fixed bottom-0 left-0 right-0 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} border-t px-6 py-3`}>
+      <nav className={`fixed bottom-0 left-0 right-0 ${isDarkMode ? 'bg-gray-900/95' : 'bg-white/95'} backdrop-blur-lg border-t ${isDarkMode ? 'border-gray-800' : 'border-gray-200'} px-4 sm:px-6 py-2 shadow-lg`}>
         <div className="max-w-md mx-auto flex items-center justify-around">
           <button 
             onClick={() => router.push('/home')}
-            className="flex flex-col items-center gap-1 text-gray-400 hover:text-[#800020] transition-all duration-300 hover:scale-110 active:scale-95"
+            className={`flex flex-col items-center gap-0.5 min-w-[60px] py-2 px-3 rounded-2xl transition-all duration-300 ${isDarkMode ? 'hover:bg-gray-800 text-gray-400 hover:text-pink-400' : 'hover:bg-gray-100 text-gray-500 hover:text-[#800020]'}`}
           >
             <Home className="w-6 h-6 transition-transform duration-300" />
-            <span className="text-xs font-medium">Home</span>
+            <span className="text-[10px] font-semibold mt-0.5">Home</span>
           </button>
           
           <button 
             onClick={() => router.push('/liked-you')}
-            className="flex flex-col items-center gap-1 text-gray-400 hover:text-[#800020] transition-all duration-300 hover:scale-110 active:scale-95"
+            className={`flex flex-col items-center gap-0.5 min-w-[60px] py-2 px-3 rounded-2xl transition-all duration-300 ${isDarkMode ? 'hover:bg-gray-800 text-gray-400 hover:text-pink-400' : 'hover:bg-gray-100 text-gray-500 hover:text-[#800020]'}`}
           >
             <div className="relative">
               <Heart className="w-6 h-6 transition-transform duration-300" />
               {likedYouCount > 0 && (
-                <div className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                <div className="absolute -top-2 -right-2 bg-gradient-to-r from-pink-500 to-red-500 text-white text-[9px] font-bold rounded-full w-5 h-5 flex items-center justify-center shadow-lg animate-pulse">
                   {likedYouCount > 9 ? '9+' : likedYouCount}
                 </div>
               )}
             </div>
-            <span className="text-xs font-medium">Liked You</span>
+            <span className="text-[10px] font-semibold mt-0.5">Liked</span>
           </button>
           
-          <button className="flex flex-col items-center gap-1 text-[#800020] transition-all duration-300 hover:scale-110 active:scale-95 relative">
-            <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-12 h-1 bg-[#800020] rounded-full transition-all duration-300"></div>
+          <button className={`flex flex-col items-center gap-0.5 min-w-[60px] py-2 px-3 rounded-2xl transition-all duration-300 ${isDarkMode ? 'bg-pink-400/10 text-pink-400' : 'bg-[#800020]/10 text-[#800020]'}`}>
             <svg className="w-6 h-6 transition-transform duration-300" viewBox="0 0 24 24" fill="currentColor">
               <rect x="2" y="6" width="20" height="3" rx="1.5"/>
               <rect x="2" y="11" width="20" height="3" rx="1.5"/>
               <rect x="2" y="16" width="20" height="3" rx="1.5"/>
             </svg>
-            <span className="text-xs font-medium">Discover</span>
+            <span className="text-[10px] font-semibold mt-0.5">Discover</span>
           </button>
           
           <button 
             onClick={() => router.push('/messages')}
-            className="flex flex-col items-center gap-1 text-gray-400 hover:text-[#800020] transition-all duration-300 hover:scale-110 active:scale-95"
+            className={`flex flex-col items-center gap-0.5 min-w-[60px] py-2 px-3 rounded-2xl transition-all duration-300 ${isDarkMode ? 'hover:bg-gray-800 text-gray-400 hover:text-pink-400' : 'hover:bg-gray-100 text-gray-500 hover:text-[#800020]'}`}
           >
             <div className="relative">
               <MessageCircle className="w-6 h-6 transition-transform duration-300" />
               {unreadCount > 0 && (
-                <div className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                <div className="absolute -top-2 -right-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white text-[9px] font-bold rounded-full w-5 h-5 flex items-center justify-center shadow-lg animate-pulse">
                   {unreadCount > 9 ? '9+' : unreadCount}
                 </div>
               )}
             </div>
-            <span className="text-xs font-medium">Messages</span>
+            <span className="text-[10px] font-semibold mt-0.5">Messages</span>
           </button>
           
-          <button className="flex flex-col items-center gap-1 text-gray-400 hover:text-[#800020] transition-all duration-300 hover:scale-110 active:scale-95">
+          <button 
+            onClick={() => router.push('/matches')}
+            className={`flex flex-col items-center gap-0.5 min-w-[60px] py-2 px-3 rounded-2xl transition-all duration-300 ${isDarkMode ? 'hover:bg-gray-800 text-gray-400 hover:text-pink-400' : 'hover:bg-gray-100 text-gray-500 hover:text-[#800020]'}`}
+          >
             <Users className="w-6 h-6 transition-transform duration-300" />
-            <span className="text-xs font-medium">Matches</span>
+            <span className="text-[10px] font-semibold mt-0.5">Matches</span>
           </button>
         </div>
       </nav>
@@ -663,7 +700,9 @@ export default function DiscoverPage() {
                   }}
                 />
                 <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-6">
-                  <h2 className="text-3xl font-bold text-white">{profile.name}, {profile.age}</h2>
+                  <div className="flex items-center gap-2 mb-1">
+                    <h2 className="text-3xl font-bold text-white">{profile.name}, {profile.age}</h2>
+                  </div>
                   <p className="text-white/90 text-sm">{profile.location}</p>
                 </div>
               </div>

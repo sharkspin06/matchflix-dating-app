@@ -8,6 +8,8 @@ export const getMessages = async (req: AuthRequest, res: Response) => {
   try {
     const currentUserId = req.userId!;
     const { matchId } = req.params;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const cursor = req.query.cursor as string | undefined;
 
     // Verify that the match exists and user is part of it
     const match = await prisma.match.findUnique({
@@ -22,9 +24,19 @@ export const getMessages = async (req: AuthRequest, res: Response) => {
       return res.status(403).json({ error: 'Unauthorized' });
     }
 
-    // Get messages
+    // Build where clause
+    const whereClause: any = { matchId };
+
+    // Add cursor condition if provided (load messages older than cursor)
+    if (cursor) {
+      whereClause.createdAt = {
+        lt: new Date(cursor),
+      };
+    }
+
+    // Get messages with pagination (ordered desc to get most recent, then reverse)
     const messages = await prisma.message.findMany({
-      where: { matchId },
+      where: whereClause,
       include: {
         sender: {
           include: {
@@ -38,9 +50,22 @@ export const getMessages = async (req: AuthRequest, res: Response) => {
         },
       },
       orderBy: {
-        createdAt: 'asc',
+        createdAt: 'desc',
       },
+      take: limit + 1, // Fetch one extra to determine if there are more
     });
+
+    // Check if there are more results
+    const hasMore = messages.length > limit;
+    const paginatedMessages = messages.slice(0, limit);
+
+    // Reverse to get chronological order (oldest to newest)
+    const orderedMessages = paginatedMessages.reverse();
+
+    // Get next cursor (createdAt of oldest message in this batch)
+    const nextCursor = hasMore && orderedMessages.length > 0
+      ? orderedMessages[0].createdAt.toISOString()
+      : null;
 
     // Mark messages as read
     await prisma.message.updateMany({
@@ -54,7 +79,11 @@ export const getMessages = async (req: AuthRequest, res: Response) => {
       },
     });
 
-    res.json(messages);
+    res.json({
+      messages: orderedMessages,
+      nextCursor,
+      hasMore,
+    });
   } catch (error) {
     console.error('Get messages error:', error);
     res.status(500).json({ error: 'Failed to get messages' });
@@ -121,15 +150,27 @@ export const sendMessage = async (req: AuthRequest, res: Response) => {
 export const getConversations = async (req: AuthRequest, res: Response) => {
   try {
     const currentUserId = req.userId!;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const cursor = req.query.cursor as string | undefined;
 
-    // Get all matches for current user
+    // Build where clause
+    const whereClause: any = {
+      OR: [
+        { user1Id: currentUserId },
+        { user2Id: currentUserId },
+      ],
+    };
+
+    // Add cursor condition if provided
+    if (cursor) {
+      whereClause.createdAt = {
+        lt: new Date(cursor),
+      };
+    }
+
+    // Get matches for current user with pagination
     const matches = await prisma.match.findMany({
-      where: {
-        OR: [
-          { user1Id: currentUserId },
-          { user2Id: currentUserId },
-        ],
-      },
+      where: whereClause,
       include: {
         user1: {
           include: {
@@ -151,10 +192,15 @@ export const getConversations = async (req: AuthRequest, res: Response) => {
       orderBy: {
         createdAt: 'desc',
       },
+      take: limit + 1, // Fetch one extra to determine if there are more
     });
 
+    // Check if there are more results
+    const hasMore = matches.length > limit;
+    const conversations = matches.slice(0, limit);
+
     // Format response
-    const conversations = matches.map((match) => {
+    const formattedConversations = conversations.map((match) => {
       const otherUser = match.user1Id === currentUserId ? match.user2 : match.user1;
       const lastMessage = match.messages[0];
 
@@ -166,7 +212,16 @@ export const getConversations = async (req: AuthRequest, res: Response) => {
       };
     });
 
-    res.json(conversations);
+    // Get next cursor (createdAt of last item)
+    const nextCursor = hasMore && conversations.length > 0 
+      ? conversations[conversations.length - 1].createdAt.toISOString()
+      : null;
+
+    res.json({
+      conversations: formattedConversations,
+      nextCursor,
+      hasMore,
+    });
   } catch (error) {
     console.error('Get conversations error:', error);
     res.status(500).json({ error: 'Failed to get conversations' });
@@ -212,7 +267,7 @@ export const getMessagesByUserId = async (req: AuthRequest, res: Response) => {
       },
     });
 
-    res.json(messages);
+    res.json({ messages, matchId: match.id });
   } catch (error) {
     console.error('Get messages by user ID error:', error);
     res.status(500).json({ error: 'Failed to get messages' });
