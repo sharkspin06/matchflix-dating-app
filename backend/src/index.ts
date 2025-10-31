@@ -15,15 +15,32 @@ dotenv.config();
 
 const app = express();
 const httpServer = createServer(app);
-const io = new Server(httpServer, {
-  cors: {
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
-    credentials: true,
+
+// CORS configuration for multiple origins
+const allowedOrigins = [
+  'http://localhost:3000',
+  'https://matchflix-dating-up.vercel.app',
+  process.env.FRONTEND_URL,
+].filter(Boolean);
+
+const corsOptions = {
+  origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
   },
+  credentials: true,
+};
+
+const io = new Server(httpServer, {
+  cors: corsOptions,
 });
 
 // Middleware
-app.use(cors());
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use('/uploads', express.static('uploads'));
 
@@ -35,6 +52,25 @@ app.use('/api/matches', matchRoutes);
 app.use('/api/likes', matchRoutes); // Also mount match routes at /api/likes for convenience
 app.use('/api/passes', passRoutes);
 app.use('/api/messages', messageRoutes);
+
+// Root endpoint
+app.get('/', (req, res) => {
+  res.json({ 
+    name: 'MatchFlix API',
+    version: '1.0.0',
+    status: 'running',
+    endpoints: {
+      health: '/api/health',
+      auth: '/api/auth',
+      profile: '/api/profile',
+      users: '/api/users',
+      matches: '/api/matches',
+      likes: '/api/likes',
+      passes: '/api/passes',
+      messages: '/api/messages'
+    }
+  });
+});
 
 // Health check
 app.get('/api/health', (req, res) => {
