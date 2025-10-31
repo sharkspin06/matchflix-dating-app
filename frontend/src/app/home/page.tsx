@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { User, MapPin, Briefcase, Edit2, Camera, Heart, Film, LogOut, Home as HomeIcon, Zap, MessageCircle, Users, Sparkles, UserPlus, Smile, HeartHandshake, Globe, Coffee, PawPrint, Wine, Cigarette } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';
 import ThemeToggle from '@/components/ThemeToggle';
-import { notificationService } from '@/lib/notifications';
 
 export default function HomePage() {
   const router = useRouter();
@@ -54,14 +53,18 @@ export default function HomePage() {
     fetchLikedYouCount();
     fetchUnreadCount();
     
-    // Request notification permission
-    notificationService.requestPermission().then((granted) => {
-      if (granted) {
-        console.log('✅ Notification permission granted');
-      } else {
-        console.log('❌ Notification permission denied');
-      }
-    });
+    // Request notification permission (only in browser)
+    if (typeof window !== 'undefined') {
+      import('@/lib/notifications').then(({ notificationService }) => {
+        notificationService.requestPermission().then((granted: boolean) => {
+          if (granted) {
+            console.log('✅ Notification permission granted');
+          } else {
+            console.log('❌ Notification permission denied');
+          }
+        });
+      });
+    }
   }, []);
 
   const fetchProfile = async () => {
