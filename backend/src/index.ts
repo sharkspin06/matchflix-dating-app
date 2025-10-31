@@ -19,9 +19,11 @@ const httpServer = createServer(app);
 // CORS configuration for multiple origins
 const allowedOrigins = [
   'http://localhost:3000',
+  'http://localhost:3001',
   'https://matchflix-dating-app.vercel.app',
   'https://matchflix-dating-up.vercel.app',
-  process.env.FRONTEND_URL,
+  'https://matchflix-dating-up-frontend-qivq-9whtbee0u.vercel.app',
+  ...(process.env.FRONTEND_URL?.split(',') || []),
 ].filter(Boolean);
 
 const corsOptions = {
