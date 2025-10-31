@@ -6,6 +6,7 @@ import { Sparkles, X, Heart, Star, MessageCircle, User, Zap, Home, Users, Thumbs
 import { useTheme } from '@/contexts/ThemeContext';
 import ThemeToggle from '@/components/ThemeToggle';
 import { notificationService } from '@/lib/notifications';
+import { API_URL, getImageUrl } from '@/lib/constants';
 
 export default function DiscoverPage() {
   const router = useRouter();
@@ -47,7 +48,7 @@ export default function DiscoverPage() {
         return;
       }
 
-      const response = await fetch('http://localhost:5001/api/users/discover', {
+      const response = await fetch(`${API_URL}/api/users/discover`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -68,13 +69,9 @@ export default function DiscoverPage() {
         
         // Transform API data to match component format
         const transformedProfiles = unseenProfiles.map((profile: any) => {
-          let imageUrl = 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=800&h=1200&fit=crop';
-          
-          if (profile.photos?.[0]) {
-            const photoPath = profile.photos[0];
-            imageUrl = photoPath.startsWith('http') 
-              ? photoPath 
-              : `http://localhost:5001${photoPath}`;
+          let imageUrl = '/placeholder-avatar.png';
+          if (profile.photos && profile.photos.length > 0) {
+            imageUrl = getImageUrl(profile.photos[0]);
           }
           
           return {
@@ -98,7 +95,7 @@ export default function DiscoverPage() {
             relationshipGoals: profile.relationshipGoals || [],
             matchScore: profile.matchScore || 0,
             topFilms: (profile.topFilms || []).map((poster: string) => ({ 
-              poster: poster.startsWith('http') ? poster : `http://localhost:5001${poster}` 
+              poster: getImageUrl(poster)
             })),
             distance: profile.distance !== undefined ? `${profile.distance} km away` : undefined,
           };
@@ -122,7 +119,7 @@ export default function DiscoverPage() {
       const token = localStorage.getItem('token');
       if (!token) return;
 
-      const response = await fetch('http://localhost:5001/api/likes/received', {
+      const response = await fetch(`${API_URL}/api/likes/received`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -142,7 +139,7 @@ export default function DiscoverPage() {
       const token = localStorage.getItem('token');
       if (!token) return;
 
-      const response = await fetch('http://localhost:5001/api/messages/unread/count', {
+      const response = await fetch(`${API_URL}/api/messages/unread/count`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -187,7 +184,7 @@ export default function DiscoverPage() {
         console.log('Sending like to user:', currentProfileData.userId, currentProfileData.name);
         try {
           if (token) {
-            const response = await fetch('http://localhost:5001/api/likes', {
+            const response = await fetch(`${API_URL}/api/likes`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -229,7 +226,7 @@ export default function DiscoverPage() {
         console.log('Sending pass for user:', currentProfileData.userId, currentProfileData.name);
         try {
           if (token) {
-            const response = await fetch('http://localhost:5001/api/passes', {
+            const response = await fetch(`${API_URL}/api/passes`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Upload, ArrowLeft, Eye, EyeOff } from 'lucide-react';
 import { api } from '@/lib/api';
+import { API_URL } from '@/lib/constants';
 import ModernInput from '@/components/ModernInput';
 
 // TMDB Genre IDs
@@ -70,7 +71,6 @@ export default function RegisterPage() {
 
     setCheckingEmail(true);
     try {
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
       const response = await fetch(`${API_URL}/api/auth/check-email?email=${encodeURIComponent(email)}`);
       const data = await response.json();
       
@@ -263,7 +263,6 @@ export default function RegisterPage() {
       console.log('Full profile data:', profileData);
       
       try {
-        const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
         const profileResponse = await fetch(`${API_URL}/api/profile`, {
           method: 'PUT',
           headers: {
@@ -302,7 +301,6 @@ export default function RegisterPage() {
           const photoFormData = new FormData();
           photoFormData.append('photo', formData.profilePicture);
 
-          const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
           const photoResponse = await fetch(`${API_URL}/api/profile/photo`, {
             method: 'POST',
             headers: {

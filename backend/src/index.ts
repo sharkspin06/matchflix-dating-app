@@ -23,6 +23,7 @@ const allowedOrigins = [
   'https://matchflix-dating-app.vercel.app',
   'https://matchflix-dating-up.vercel.app',
   'https://matchflix-dating-up-frontend-qivq-9whtbee0u.vercel.app',
+  'https://matchflix-dating-up-frontend-qivq.vercel.app',
   ...(process.env.FRONTEND_URL?.split(',') || []),
 ].filter(Boolean);
 

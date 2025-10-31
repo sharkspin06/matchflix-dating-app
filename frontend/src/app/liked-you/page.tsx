@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Home, Heart, MessageCircle, Users, LogOut } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';
 import ThemeToggle from '@/components/ThemeToggle';
+import { API_URL, getImageUrl } from '@/lib/constants';
 
 interface Profile {
   userId: string;
@@ -49,7 +50,7 @@ export default function LikedYouPage() {
         return;
       }
 
-      const response = await fetch('http://localhost:5001/api/likes/received', {
+      const response = await fetch(`${API_URL}/api/likes/received`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -61,13 +62,9 @@ export default function LikedYouPage() {
         console.log('Number of people who liked you:', data.length);
         
         const transformedProfiles = data.map((profile: any) => {
-          let imageUrl = 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=800&h=1200&fit=crop';
-          
-          if (profile.photos?.[0]) {
-            const photoPath = profile.photos[0];
-            imageUrl = photoPath.startsWith('http') 
-              ? photoPath 
-              : `http://localhost:5001${photoPath}`;
+          let imageUrl = '/placeholder-avatar.png';
+          if (profile.photos && profile.photos.length > 0) {
+            imageUrl = getImageUrl(profile.photos[0]);
           }
           
           return {
@@ -98,7 +95,7 @@ export default function LikedYouPage() {
       const token = localStorage.getItem('token');
       if (!token) return;
 
-      const response = await fetch('http://localhost:5001/api/likes/received', {
+      const response = await fetch(`${API_URL}/api/likes/received`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -118,7 +115,7 @@ export default function LikedYouPage() {
       const token = localStorage.getItem('token');
       if (!token) return;
 
-      const response = await fetch('http://localhost:5001/api/messages/unread/count', {
+      const response = await fetch(`${API_URL}/api/messages/unread/count`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },

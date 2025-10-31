@@ -1,5 +1,4 @@
-// Remove trailing slash if present
-const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001').replace(/\/$/, '');
+import { API_URL } from './constants';
 
 class ApiClient {
   private getHeaders(): HeadersInit {

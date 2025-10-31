@@ -6,6 +6,7 @@ import { ArrowLeft, Send, Heart, Users, MessageCircle, Check, CheckCheck, MoreVe
 import { socketClient } from '@/lib/socket';
 import { useTheme } from '@/contexts/ThemeContext';
 import ThemeToggle from '@/components/ThemeToggle';
+import { API_URL, getImageUrl } from '@/lib/constants';
 
 interface Message {
   id: string;
@@ -144,7 +145,7 @@ export default function ChatPage() {
   const fetchUserProfile = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5001/api/users/${userId}`, {
+      const response = await fetch(`${API_URL}/api/users/${userId}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -155,11 +156,8 @@ export default function ChatPage() {
         console.log('User profile data:', data); // Debug log
         let imageUrl = 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&h=200&fit=crop';
         
-        if (data.photos?.[0]) {
-          // Check if the photo URL already starts with http
-          imageUrl = data.photos[0].startsWith('http') 
-            ? data.photos[0] 
-            : `http://localhost:5001${data.photos[0]}`;
+        if (data.photos && data.photos.length > 0) {
+          imageUrl = getImageUrl(data.photos[0]);
         }
         
         setUserProfile({
@@ -184,7 +182,7 @@ export default function ChatPage() {
       if (append) setLoadingMore(true);
 
       const limit = 10;
-      const response = await fetch(`http://localhost:5001/api/messages/${userId}?page=${pageNum}&limit=${limit}`, {
+      const response = await fetch(`${API_URL}/api/messages/${userId}?page=${pageNum}&limit=${limit}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -228,7 +226,7 @@ export default function ChatPage() {
       const token = localStorage.getItem('token');
       if (!token) return;
 
-      const response = await fetch('http://localhost:5001/api/messages/unread/count', {
+      const response = await fetch(`${API_URL}/api/messages/unread/count`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -248,7 +246,7 @@ export default function ChatPage() {
       const token = localStorage.getItem('token');
       if (!token) return;
 
-      const response = await fetch('http://localhost:5001/api/likes/received', {
+      const response = await fetch(`${API_URL}/api/likes/received`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -287,7 +285,7 @@ export default function ChatPage() {
   const handleUnmatch = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5001/api/matches/${userId}`, {
+      const response = await fetch(`${API_URL}/api/matches/${userId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,

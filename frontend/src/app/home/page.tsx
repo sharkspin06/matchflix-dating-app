@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { User, MapPin, Briefcase, Edit2, Camera, Heart, Film, LogOut, Home as HomeIcon, Zap, MessageCircle, Users, Sparkles, UserPlus, Smile, HeartHandshake, Globe, Coffee, PawPrint, Wine, Cigarette } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';
 import ThemeToggle from '@/components/ThemeToggle';
+import { API_URL, getImageUrl } from '@/lib/constants';
 
 export default function HomePage() {
   const router = useRouter();
@@ -75,7 +76,7 @@ export default function HomePage() {
         return;
       }
 
-      const response = await fetch('http://localhost:5001/api/profile', {
+      const response = await fetch(`${API_URL}/api/profile`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -125,7 +126,7 @@ export default function HomePage() {
       const token = localStorage.getItem('token');
       if (!token) return;
 
-      const response = await fetch('http://localhost:5001/api/likes/received', {
+      const response = await fetch(`${API_URL}/api/likes/received`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -145,7 +146,7 @@ export default function HomePage() {
       const token = localStorage.getItem('token');
       if (!token) return;
 
-      const response = await fetch('http://localhost:5001/api/messages/unread/count', {
+      const response = await fetch(`${API_URL}/api/messages/unread/count`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -274,7 +275,7 @@ export default function HomePage() {
       const token = localStorage.getItem('token');
       
       // Update profile data
-      const response = await fetch('http://localhost:5001/api/profile', {
+      const response = await fetch(`${API_URL}/api/profile`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -289,7 +290,7 @@ export default function HomePage() {
           const photoFormData = new FormData();
           photoFormData.append('photo', selectedProfilePic);
 
-          const photoResponse = await fetch('http://localhost:5001/api/profile/photo', {
+          const photoResponse = await fetch(`${API_URL}/api/profile/photo`, {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${token}`,
@@ -391,7 +392,7 @@ export default function HomePage() {
                   <div className="w-24 h-24 rounded-full overflow-hidden bg-gradient-to-br from-[#800020] to-[#660019] border-4 border-white shadow-lg">
                     {profile.photos && profile.photos[0] ? (
                       <img 
-                        src={profile.photos[0].startsWith('http') ? profile.photos[0] : `http://localhost:5001${profile.photos[0]}`}
+                        src={getImageUrl(profile.photos[0])}
                         alt={profile.name}
                         className="w-full h-full object-cover"
                         onError={(e) => {
@@ -635,7 +636,7 @@ export default function HomePage() {
                     <div className="w-24 h-24 rounded-full overflow-hidden bg-gradient-to-br from-[#800020] to-[#660019] border-4 border-gray-200">
                       {profilePicPreview || (profile.photos && profile.photos[0]) ? (
                         <img 
-                          src={profilePicPreview || (profile.photos[0].startsWith('http') ? profile.photos[0] : `http://localhost:5001${profile.photos[0]}`)}
+                          src={profilePicPreview || getImageUrl(profile.photos[0])}
                           alt="Profile preview"
                           className="w-full h-full object-cover"
                           onError={(e) => {
