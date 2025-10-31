@@ -5,7 +5,10 @@ export class NotificationService {
   private permission: NotificationPermission = 'default';
 
   private constructor() {
-    this.checkPermission();
+    // Only check permission in browser environment
+    if (typeof window !== 'undefined') {
+      this.checkPermission();
+    }
   }
 
   static getInstance(): NotificationService {
@@ -16,13 +19,13 @@ export class NotificationService {
   }
 
   private checkPermission() {
-    if ('Notification' in window) {
+    if (typeof window !== 'undefined' && 'Notification' in window) {
       this.permission = Notification.permission;
     }
   }
 
   async requestPermission(): Promise<boolean> {
-    if (!('Notification' in window)) {
+    if (typeof window === 'undefined' || !('Notification' in window)) {
       console.log('This browser does not support notifications');
       return false;
     }
@@ -41,6 +44,10 @@ export class NotificationService {
   }
 
   showNotification(title: string, options?: NotificationOptions) {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
     if (this.permission !== 'granted') {
       console.log('Notification permission not granted');
       return;
