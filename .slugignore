@@ -1,0 +1,5 @@
+# Ignore frontend for Heroku backend deployment
+frontend/
+*.md
+.git
+.gitignore
