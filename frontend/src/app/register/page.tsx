@@ -70,7 +70,8 @@ export default function RegisterPage() {
 
     setCheckingEmail(true);
     try {
-      const response = await fetch(`http://localhost:5001/api/auth/check-email?email=${encodeURIComponent(email)}`);
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+      const response = await fetch(`${API_URL}/api/auth/check-email?email=${encodeURIComponent(email)}`);
       const data = await response.json();
       
       if (data.exists) {
@@ -262,7 +263,8 @@ export default function RegisterPage() {
       console.log('Full profile data:', profileData);
       
       try {
-        const profileResponse = await fetch('http://localhost:5001/api/profile', {
+        const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+        const profileResponse = await fetch(`${API_URL}/api/profile`, {
           method: 'PUT',
           headers: {
             'Authorization': `Bearer ${response.token}`,
@@ -300,7 +302,8 @@ export default function RegisterPage() {
           const photoFormData = new FormData();
           photoFormData.append('photo', formData.profilePicture);
 
-          const photoResponse = await fetch('http://localhost:5001/api/profile/photo', {
+          const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+          const photoResponse = await fetch(`${API_URL}/api/profile/photo`, {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${response.token}`,
