@@ -53,6 +53,25 @@ app.use('/api/likes', matchRoutes); // Also mount match routes at /api/likes for
 app.use('/api/passes', passRoutes);
 app.use('/api/messages', messageRoutes);
 
+// Root endpoint
+app.get('/', (req, res) => {
+  res.json({ 
+    name: 'MatchFlix API',
+    version: '1.0.0',
+    status: 'running',
+    endpoints: {
+      health: '/api/health',
+      auth: '/api/auth',
+      profile: '/api/profile',
+      users: '/api/users',
+      matches: '/api/matches',
+      likes: '/api/likes',
+      passes: '/api/passes',
+      messages: '/api/messages'
+    }
+  });
+});
+
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'MatchFlix API is running' });
