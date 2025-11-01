@@ -8,12 +8,9 @@ const prisma = new PrismaClient();
 export const register = async (req: Request, res: Response) => {
   try {
     const { email, password, name, age, gender } = req.body;
-    
-    console.log('📝 Registration attempt:', { email, name, age, gender, hasPassword: !!password });
 
     // Validation
     if (!email || !password || !name || !age || !gender) {
-      console.log('❌ Validation failed - missing fields:', { email: !!email, password: !!password, name: !!name, age: !!age, gender: !!gender });
       return res.status(400).json({ error: 'All fields are required' });
     }
 

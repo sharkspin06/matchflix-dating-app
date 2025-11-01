@@ -15,44 +15,15 @@ dotenv.config();
 
 const app = express();
 const httpServer = createServer(app);
-
-// CORS configuration for multiple origins
-const allowedOrigins = [
-  'http://localhost:3000',
-  'http://localhost:3001',
-  'https://matchflix-dating-app.vercel.app',
-  'https://matchflix-dating-up.vercel.app',
-  'https://matchflix-dating-up-frontend-qivq-9whtbee0u.vercel.app',
-  'https://matchflix-dating-up-frontend-qivq.vercel.app',
-  ...(process.env.FRONTEND_URL?.split(',') || []),
-].filter(Boolean);
-
-const corsOptions = {
-  origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
-    // Allow requests with no origin (like mobile apps or Postman)
-    if (!origin) {
-      callback(null, true);
-      return;
-    }
-    
-    const isAllowed = allowedOrigins.some(allowed => {
-      if (!allowed) return false;
-      const cleanOrigin = origin.replace('https://', '').replace('http://', '');
-      const cleanAllowed = allowed.replace('https://', '').replace('http://', '');
-      return cleanOrigin.includes(cleanAllowed) || cleanAllowed.includes(cleanOrigin);
-    });
-    
-    callback(null, isAllowed || true); // Allow all for now - change to isAllowed in production
-  },
-  credentials: true,
-};
-
 const io = new Server(httpServer, {
-  cors: corsOptions,
+  cors: {
+    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    credentials: true,
+  },
 });
 
 // Middleware
-app.use(cors(corsOptions));
+app.use(cors());
 app.use(express.json());
 app.use('/uploads', express.static('uploads'));
 

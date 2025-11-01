@@ -1,5 +1,6 @@
-import { io, Socket } from 'socket.io-client';
-import { SOCKET_URL } from './constants';
+  import { io, Socket } from 'socket.io-client';
+
+const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:5001';
 
 class SocketClient {
   private socket: Socket | null = null;

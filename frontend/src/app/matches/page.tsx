@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { MessageCircle, Heart, Users, LogOut } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';
 import ThemeToggle from '@/components/ThemeToggle';
-import { API_URL, getImageUrl } from '@/lib/constants';
 
 interface Match {
   matchId: string;
@@ -52,7 +51,7 @@ export default function MatchesPage() {
         return;
       }
 
-      const response = await fetch(`${API_URL}/api/matches`, {
+      const response = await fetch('http://localhost:5001/api/matches', {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -63,9 +62,13 @@ export default function MatchesPage() {
         console.log('Matches API response:', data);
         
         const transformedMatches = data.map((match: any) => {
-          let imageUrl = '/placeholder-avatar.png';
+          let imageUrl = 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=800&h=1200&fit=crop';
+          
           if (match.user.profile?.photos?.[0]) {
-            imageUrl = getImageUrl(match.user.profile.photos[0]);
+            const photoPath = match.user.profile.photos[0];
+            imageUrl = photoPath.startsWith('http') 
+              ? photoPath 
+              : `http://localhost:5001${photoPath}`;
           }
           
           return {
@@ -97,7 +100,7 @@ export default function MatchesPage() {
       const token = localStorage.getItem('token');
       if (!token) return;
 
-      const response = await fetch(`${API_URL}/api/messages/unread/count`, {
+      const response = await fetch('http://localhost:5001/api/messages/unread/count', {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -117,7 +120,7 @@ export default function MatchesPage() {
       const token = localStorage.getItem('token');
       if (!token) return;
 
-      const response = await fetch(`${API_URL}/api/likes/received`, {
+      const response = await fetch('http://localhost:5001/api/likes/received', {
         headers: {
           'Authorization': `Bearer ${token}`,
         },

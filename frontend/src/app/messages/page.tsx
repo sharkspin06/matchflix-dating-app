@@ -6,7 +6,6 @@ import { Home, Heart, MessageCircle, Users, Search, LogOut, MoreVertical, UserX 
 import { socketClient } from '@/lib/socket';
 import { useTheme } from '@/contexts/ThemeContext';
 import ThemeToggle from '@/components/ThemeToggle';
-import { API_URL, getImageUrl } from '@/lib/constants';
 
 interface Message {
   id: string;
@@ -137,7 +136,7 @@ export default function MessagesPage() {
         setLoadingMore(true);
       }
 
-      const url = new URL(`${API_URL}/api/messages/conversations`);
+      const url = new URL('http://localhost:5001/api/messages/conversations');
       url.searchParams.append('limit', '10');
       if (cursor) {
         url.searchParams.append('cursor', cursor);
@@ -155,7 +154,10 @@ export default function MessagesPage() {
           let avatarUrl = 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&h=200&fit=crop';
           
           if (conv.user.profile?.photos?.[0]) {
-            avatarUrl = getImageUrl(conv.user.profile.photos[0]);
+            const photoPath = conv.user.profile.photos[0];
+            avatarUrl = photoPath.startsWith('http') 
+              ? photoPath 
+              : `http://localhost:5001${photoPath}`;
           }
           
           return {
@@ -218,7 +220,7 @@ export default function MessagesPage() {
       const token = localStorage.getItem('token');
       if (!token) return;
 
-      const response = await fetch(`${API_URL}/api/likes/received`, {
+      const response = await fetch('http://localhost:5001/api/likes/received', {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -238,7 +240,7 @@ export default function MessagesPage() {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${API_URL}/api/matches/${selectedUser.id}`, {
+      const response = await fetch(`http://localhost:5001/api/matches/${selectedUser.id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
