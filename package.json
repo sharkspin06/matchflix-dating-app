@@ -13,7 +13,7 @@
     "dev:frontend": "npm run dev --workspace=frontend",
     "build": "npm run build --workspace=backend",
     "start": "npm run start --workspace=backend",
-    "heroku-postbuild": "npm run build --workspace=backend"
+    "heroku-postbuild": "cd backend && npx prisma generate && npm run build"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"
